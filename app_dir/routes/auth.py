@@ -48,12 +48,9 @@ def user_login():
         if not user:
             return jsonify({"error": "Invalid username or password"}), HTTP_UNAUTHORIZED
 
-        # Determine roles
-        roles = ["admin"] if user.is_admin else ["user"]
-
         # create access token for the user.
         access_token = create_access_token(
-            identity=username, expires_delta=timedelta(days=1)
+            identity=user.username, expires_delta=timedelta(days=1)
         )
 
         return (
@@ -61,7 +58,7 @@ def user_login():
                 {
                     "access_token": access_token,
                     "user": user.username,
-                    "roles": roles,
+                    "roles": user.roles,
                     "message": "Login successful",
                 }
             ),

@@ -70,20 +70,20 @@ class AuthService:
         Return the user object if authentication is successful."""
         user = User.query.filter_by(
             username=username
-        ).first()  # remember that username might not be uni
+        ).first()  # remember that username might not be unique
         if not user:
-            raise ValueError("Invalid username or password")
+            raise ValueError("User not found.")
 
-        if user.is_admin:
+        # We use .split() here to be able to get whole words
+        # and not just single letters.
+        # This is important for the roles check.
+        if [role for role in user.roles.split() if role == "ADMIN"]:
             return True
         if not user.is_active:
             return False
         # Check password
-        hash_to_check = hashlib.pbkdf2_hmac(
-            "sha256", password.encode("utf-8"), user.password_salt, 100000
-        )
-        if hash_to_check != user.password_hash:
-            raise ValueError("Invalid username or password")
+        if not user.check_password(password):
+            raise ValueError("Incorrect password.")
 
         return user
 
