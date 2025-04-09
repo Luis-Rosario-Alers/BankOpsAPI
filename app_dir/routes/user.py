@@ -1,8 +1,8 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
 
-from app.constants.http_status import HTTP_BAD_REQUEST, HTTP_OK, HTTP_SERVER_ERROR
-from app.services.user_service import UserService
+from app_dir.constants.http_status import HTTP_BAD_REQUEST, HTTP_OK, HTTP_SERVER_ERROR
+from app_dir.services.user_service import UserService
 
 user_bp = Blueprint("user", __name__)
 
@@ -61,9 +61,20 @@ def register_user():
             jsonify({"error": "Username, password, and email are required"}),
             HTTP_BAD_REQUEST,
         )
-
-    new_user = UserService.create_user(username, password, email)
-    if new_user:
-        return jsonify({"message": "User created successfully"}), HTTP_OK
-    else:
-        return jsonify({"message": "User already exists"}), HTTP_BAD_REQUEST
+    try:
+        user = UserService.create_user(username, password, email)
+        return (
+            jsonify(
+                {
+                    "message": "User created successfully",
+                    "user": {
+                        "id": user.user_id,
+                        "username": user.username,
+                        "email": user.email,
+                    },
+                }
+            ),
+            HTTP_OK,
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), HTTP_SERVER_ERROR

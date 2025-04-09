@@ -1,16 +1,16 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
 
-from app.constants.http_status import (
+from app_dir.constants.http_status import (
     HTTP_BAD_REQUEST,
     HTTP_CREATED,
 )
-from app.services.account_service import AccountService
+from app_dir.services.account_service import AccountService
 
-transaction_bp = Blueprint("transactions", __name__)
+transactions_bp = Blueprint("transactions", __name__)
 
 
-@transaction_bp.route("/transfer", methods=["POST"])
+@transactions_bp.route("/transfer", methods=["POST"])
 @jwt_required()
 def transfer():
     """Transfer money between accounts"""
@@ -35,7 +35,7 @@ def transfer():
     return jsonify({"message": "transfer successful."}), HTTP_CREATED
 
 
-@transaction_bp.route("/withdraw", methods=["POST"])
+@transactions_bp.route("/withdraw", methods=["POST"])
 @jwt_required()
 def withdraw():
     """Withdraw money from an account"""
@@ -57,7 +57,7 @@ def withdraw():
     return jsonify({"message": "withdrawal successful."}), HTTP_CREATED
 
 
-@transaction_bp.route("/deposit", methods=["POST"])
+@transactions_bp.route("/deposit", methods=["POST"])
 @jwt_required()
 def deposit():
     """Deposit money into an account"""

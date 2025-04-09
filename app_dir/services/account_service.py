@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
 
-from app.extensions import db
-from app.models.account_model import Account
-from app.models.transaction_model import Transaction
-from app.services.auth_service import AuthService
+from app_dir.extensions import db
+from app_dir.models.account_model import Account
+from app_dir.models.transaction_model import Transaction
+from app_dir.services.auth_service import AuthService
 
 
 class AccountService:

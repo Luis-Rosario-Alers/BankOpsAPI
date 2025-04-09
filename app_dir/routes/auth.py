@@ -8,13 +8,13 @@ from flask_jwt_extended import (
 )
 from sqlalchemy.exc import IntegrityError
 
-from app.constants.http_status import (
+from app_dir.constants.http_status import (
     HTTP_BAD_REQUEST,
     HTTP_OK,
     HTTP_SERVER_ERROR,
     HTTP_UNAUTHORIZED,
 )
-from app.services.auth_service import AuthService
+from app_dir.services.auth_service import AuthService
 
 auth_bp = Blueprint("auth", __name__)
 

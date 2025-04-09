@@ -2,5 +2,6 @@ flask
 flask-jwt-extended
 flask-sqlalchemy
 flask_cors
+mysql-connector-python
 python-dotenv
 sqlalchemy

@@ -1,6 +1,5 @@
-from app.extensions import db
-from app.models.user_model import User
-from app.services.auth_service import AuthService
+from app_dir.extensions import db
+from app_dir.models.user_model import User
 
 
 class UserService:
@@ -10,6 +9,8 @@ class UserService:
     @staticmethod
     def create_user(username, password, email):
         """Create a new user"""
+        if UserService.get_user_by_username(username):
+            raise ValueError("Username already exists")
         user = User(username=username, email=email)
         user.set_password(password)
 
@@ -51,6 +52,8 @@ class UserService:
         if not user:
             raise ValueError("User not found")
         if old_password and new_password:
+            from app_dir.services.auth_service import AuthService
+
             if not AuthService.authenticate_user(username, old_password):
                 raise ValueError("User authentication failed")
         user.set_password(new_password)

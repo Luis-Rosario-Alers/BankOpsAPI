@@ -3,11 +3,11 @@ from typing import Union
 
 from flask import jsonify
 
-from app.constants.http_status import HTTP_UNAUTHORIZED
-from app.extensions import jwt
-from app.models.account_model import Account
-from app.models.user_model import User
-from app.services.user_service import UserService
+from app_dir.constants.http_status import HTTP_UNAUTHORIZED
+from app_dir.extensions import jwt
+from app_dir.models.account_model import Account
+from app_dir.models.user_model import User
+from app_dir.services.user_service import UserService
 
 
 @jwt.user_lookup_loader
@@ -30,7 +30,7 @@ def add_additional_claims(identity):
         }
 
 
-@jwt.unauthenticated_loader
+@jwt.unauthorized_loader
 def unauthenticated_response(auth_error_response: str):
     """Response for unauthenticated requests"""
     auth_error_response = "Missing or invalid token"

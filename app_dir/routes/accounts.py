@@ -2,16 +2,16 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from sqlalchemy.exc import IntegrityError
 
-from app.constants.http_status import (
+from app_dir.constants.http_status import (
     HTTP_BAD_REQUEST,
     HTTP_CREATED,
     HTTP_OK,
     HTTP_SERVER_ERROR,
     HTTP_UNAUTHORIZED,
 )
-from app.extensions import db
-from app.services.account_service import AccountService
-from app.services.auth_service import AuthService
+from app_dir.extensions import db
+from app_dir.services.account_service import AccountService
+from app_dir.services.auth_service import AuthService
 
 accounts_bp = Blueprint("accounts", __name__)
 
@@ -110,7 +110,7 @@ def register_account():
     if account_type not in AccountService.ACCOUNT_TYPES:
         return jsonify({"error": "Invalid account type"}), HTTP_BAD_REQUEST
 
-    from app.models.account_model import Account
+    from app_dir.models.account_model import Account
 
     new_account = Account(
         name=account_name,

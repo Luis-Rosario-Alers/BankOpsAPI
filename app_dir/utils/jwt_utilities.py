@@ -1,5 +1,5 @@
-from app.extensions import jwt
-from app.services.user_service import UserService
+from app_dir.extensions import jwt
+from app_dir.services.user_service import UserService
 
 
 @jwt.user_lookup_loader
