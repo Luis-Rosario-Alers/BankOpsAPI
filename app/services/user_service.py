@@ -1,8 +1,6 @@
-import hashlib
-import os
-
 from app.extensions import db
 from app.models.user_model import User
+from app.services.auth_service import AuthService
 
 
 class UserService:
@@ -12,9 +10,12 @@ class UserService:
     @staticmethod
     def create_user(username, password, email):
         """Create a new user"""
-        user = User(username=username, password=password, email=email)
+        user = User(username=username, email=email)
+        user.set_password(password)
+
         db.session.add(user)
         db.session.commit()
+
         return user
 
     @staticmethod
@@ -41,11 +42,16 @@ class UserService:
         return user
 
     @staticmethod
-    def set_password(user_id, password: str) -> None:
-        """Securely hash and store the password."""
-        user = User.query.get(user_id)
-        salt = os.urandom(32)
-        user.password_salt = salt
-        user.password_hash = hashlib.pbkdf2_hmac(
-            "sha256", password.encode("utf-8"), salt, 100000
-        )
+    def set_new_password(username, new_password: str, old_password: str) -> None:
+        """
+        Securely hash and store the password
+        or change password depending on params.
+        """
+        user = UserService.get_user_by_username(username)
+        if not user:
+            raise ValueError("User not found")
+        if old_password and new_password:
+            if not AuthService.authenticate_user(username, old_password):
+                raise ValueError("User authentication failed")
+        user.set_password(new_password)
+        db.session.commit()

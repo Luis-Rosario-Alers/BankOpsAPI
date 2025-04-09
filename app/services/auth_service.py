@@ -1,4 +1,5 @@
 import hashlib
+from typing import Union
 
 from flask import jsonify
 
@@ -63,7 +64,7 @@ class AuthService:
             return None
 
     @staticmethod
-    def authenticate_user(username: str, password: str) -> User:
+    def authenticate_user(username: str, password: str) -> Union[User, bool]:
         """Authenticate user with username and password.
         Checks if the provided password matches the stored hash.
         Return the user object if authentication is successful."""

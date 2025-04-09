@@ -25,7 +25,7 @@ class AccountService:
             from_account = Account.query.get(from_account_number)
             to_account = Account.query.get(to_account_number)
             # We always assume that the user is the one who owns the from_account
-            # and the to_account is the one that is being transferred to.
+            # and to_account is the one that is being transferred to.
             # This is a security measure to ensure that the user is not transferring
             # money to an account they do not own.
             if not AuthService.verify_account_ownership(user, from_account_number):
@@ -43,7 +43,7 @@ class AccountService:
             if amount < 0:
                 raise ValueError("Transfer amount cannot be negative")
             # Check if the transfer amount is greater than the balance
-            # of the from account
+            # of the form account
             if amount > from_account.balance:
                 raise ValueError("Not enough funds in account")
 

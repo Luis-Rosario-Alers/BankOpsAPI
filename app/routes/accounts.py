@@ -19,7 +19,22 @@ accounts_bp = Blueprint("accounts", __name__)
 @accounts_bp.route("/<account_number>/pin", methods=["PATCH"])
 @jwt_required()
 def update_pin(account_number):
-    """Update the PIN of the account"""
+    """
+    Update the PIN of the account.
+
+    :param account_number: The account number to update
+    :type account_number: str
+
+    :**json** request body:
+        * **current_pin** (*str*): The current PIN for the account
+        * **new_pin** (*str*): The new PIN to set for the account
+
+    :status 200: PIN updated successfully
+    :status 400: Missing data or invalid PIN
+    :status 401: Account doesn't belong to user
+    :status 500: Database or server error
+    :return: JSON response with message
+    """
     data = request.json
     if not data:
         return jsonify({"error": "Missing request data"}), HTTP_BAD_REQUEST
@@ -64,7 +79,19 @@ def update_pin(account_number):
 @accounts_bp.route("/register", methods=["POST"])
 @jwt_required()
 def register_account():
-    """Register a new account for the user"""
+    """
+    Register a new account for the user.
+
+    :**json** request body:
+        * **account_name** (*str*): Name for the new account
+        * **account_type** (*str*): Type of account (must be one of the valid types)
+        * **account_pin** (*str*): PIN code to secure the account
+
+    :status 201: Account registered successfully
+    :status 400: Missing required fields or invalid account type
+    :status 500: Database or server error
+    :return: JSON response with message
+    """
     user = get_jwt_identity()
 
     data = request.json
@@ -100,8 +127,21 @@ def register_account():
 @accounts_bp.route("/authenticate", methods=["POST"])
 @jwt_required()
 def account_login():
-    """Authenticate with account number and PIN"""
+    """
+    Authenticate with account number and PIN.
 
+    :**json** request body:
+        * **account_number** (*str*): The account number to authenticate
+        * **pin** (*str*): The PIN code for the account
+
+    :status 200: Login successful with account details
+    :status 400: Missing required fields
+    :status 401: Invalid credentials or locked account
+    :status 500: Server error during authentication
+    :return: JSON response with account details including account_number,
+             account_name, account_balance, account_type, account_holder,
+             account_currency
+    """
     identity = get_jwt_identity()
 
     data = request.json
