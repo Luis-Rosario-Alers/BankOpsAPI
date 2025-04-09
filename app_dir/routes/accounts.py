@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_jwt_extended import get_current_user, get_jwt_identity, jwt_required
 from sqlalchemy.exc import IntegrityError
 
 from app_dir.constants.http_status import (
@@ -10,6 +10,7 @@ from app_dir.constants.http_status import (
     HTTP_UNAUTHORIZED,
 )
 from app_dir.extensions import db
+from app_dir.models.account_model import Account
 from app_dir.services.account_service import AccountService
 from app_dir.services.auth_service import AuthService
 
@@ -22,18 +23,13 @@ def update_pin(account_number):
     """
     Update the PIN of the account.
 
-    :param account_number: The account number to update
-    :type account_number: str
+    Requires JWT authentication.
 
-    :**json** request body:
-        * **current_pin** (*str*): The current PIN for the account
-        * **new_pin** (*str*): The new PIN to set for the account
+    Request JSON:
+        * current_pin (str): The current PIN for the account
+        * new_pin (str): The new PIN to set for the account
 
-    :status 200: PIN updated successfully
-    :status 400: Missing data or invalid PIN
-    :status 401: Account doesn't belong to user
-    :status 500: Database or server error
-    :return: JSON response with message
+    :return: JSON with success message or error
     """
     data = request.json
     if not data:
@@ -80,19 +76,18 @@ def update_pin(account_number):
 @jwt_required()
 def register_account():
     """
-    Register a new account for the user.
+    Register a new account for the authenticated user.
 
-    :**json** request body:
-        * **account_name** (*str*): Name for the new account
-        * **account_type** (*str*): Type of account (must be one of the valid types)
-        * **account_pin** (*str*): PIN code to secure the account
+    Requires JWT authentication.
 
-    :status 201: Account registered successfully
-    :status 400: Missing required fields or invalid account type
-    :status 500: Database or server error
-    :return: JSON response with message
+    Request JSON:
+        * account_name (str): Name for the new account
+        * account_type (str): Type of account (must be one of: {valid types})
+        * account_pin (str): PIN code to secure the account
+
+    :return: JSON with success message or error
     """
-    user = get_jwt_identity()
+    user = get_current_user()
 
     data = request.json
     if not data:
@@ -107,18 +102,23 @@ def register_account():
             jsonify({"error": "Account name, type, and PIN are required"}),
             HTTP_BAD_REQUEST,
         )
-    if account_type not in AccountService.ACCOUNT_TYPES:
+
+    # Check if account_type is valid and included in an account_types account model.
+    # Also we do .upper() to stay consistent with the model casing.
+    if account_type.upper() not in Account.valid_account_types:
         return jsonify({"error": "Invalid account type"}), HTTP_BAD_REQUEST
 
-    from app_dir.models.account_model import Account
-
     new_account = Account(
-        name=account_name,
+        account_name=account_name,
         account_holder=user.username,
         account_type=account_type.upper(),
         user_id=user.user_id,
-        pin=account_pin,
     )
+    # Set pin for the new account
+    try:
+        new_account.set_pin(account_pin)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), HTTP_BAD_REQUEST
     db.session.add(new_account)
     db.session.commit()
     return jsonify({"message": "Account registered successfully"}), HTTP_CREATED
@@ -130,17 +130,14 @@ def account_login():
     """
     Authenticate with account number and PIN.
 
-    :**json** request body:
-        * **account_number** (*str*): The account number to authenticate
-        * **pin** (*str*): The PIN code for the account
+    Requires JWT authentication.
 
-    :status 200: Login successful with account details
-    :status 400: Missing required fields
-    :status 401: Invalid credentials or locked account
-    :status 500: Server error during authentication
-    :return: JSON response with account details including account_number,
-             account_name, account_balance, account_type, account_holder,
-             account_currency
+    Request JSON:
+        * account_number (str): The account number to authenticate
+        * pin (str): The PIN code for the account
+
+    :return: JSON containing account details
+    (number, name, balance, type, holder, currency) and success message
     """
     identity = get_jwt_identity()
 

@@ -4,6 +4,7 @@ import os
 from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, Integer, LargeBinary, String
+from sqlalchemy.dialects.mysql import ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app_dir.extensions import db
@@ -22,7 +23,7 @@ class User(db.Model):
 
     # User activity information
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    roles: Mapped[bool] = mapped_column(ENUM("CUSTOMER", "ADMIN"), default="CUSTOMER")
     failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0)
     last_password_change: Mapped[Optional[datetime.datetime]] = mapped_column(
         DateTime, nullable=True
@@ -56,8 +57,10 @@ class User(db.Model):
         self.password_hash = hashlib.pbkdf2_hmac(
             "sha256", password.encode("utf-8"), salt, 100000
         )
+        self.last_password_change = datetime.datetime.now()
+        self.failed_login_attempts = 0
 
-    def check_password(self, password: str) -> None:
+    def check_password(self, password: str) -> bool:
         """Check if the provided password matches the stored hash."""
         hash_to_check = hashlib.pbkdf2_hmac(
             "sha256", password.encode("utf-8"), self.password_salt, 100000

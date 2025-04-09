@@ -7,12 +7,6 @@ from app_dir.services.auth_service import AuthService
 
 
 class AccountService:
-    ACCOUNT_TYPES = {
-        "CHECKING": "Checking",
-        "SAVINGS": "Savings",
-        "CERTIFICATE OF DEPOSIT": "Certificate of Deposit",
-    }
-
     def __init__(self):
         pass
 

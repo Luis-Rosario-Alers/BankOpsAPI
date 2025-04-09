@@ -25,8 +25,16 @@ logger = logging.getLogger(
 class Account(db.Model):
     __tablename__ = "account"
 
+    valid_account_types = {
+        "CHECKING": "Checking",
+        "SAVINGS": "Savings",
+        "CERTIFICATE OF DEPOSIT": "Certificate of Deposit",
+    }
+
     # Identity columns
-    account_number: Mapped[int] = db.mapped_column(Integer, primary_key=True)
+    account_number: Mapped[int] = db.mapped_column(
+        Integer, primary_key=True, autoincrement=True, unique=True
+    )  # TODO: make account number unique and not simply autoincrement.
     user_id: Mapped[int] = db.mapped_column(
         Integer, ForeignKey("user.user_id"), nullable=False
     )
@@ -36,6 +44,7 @@ class Account(db.Model):
     account_type: Mapped[str] = db.mapped_column(
         Enum("CHECKING", "SAVINGS", "CERTIFICATE OF DEPOSIT"), nullable=False
     )
+    account_name: Mapped[str] = db.mapped_column(String(45), nullable=False)
     creation_date: Mapped[datetime.datetime] = db.mapped_column(
         DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc)
     )
@@ -56,32 +65,11 @@ class Account(db.Model):
     # Relationships
     user = db.relationship("User", back_populates="accounts")
 
-    bank_accounts = 0  # Class variable for tracking count
-
-    def __init__(
-        self,
-        account_holder: str,
-        account_type: str,
-        balance: float,
-        user_id: int,
-        pin: str,
-    ) -> None:
-        self.account_holder = account_holder
-        self.account_type = account_type
-        self.balance = balance
-        self.interest_rate = 0.0
-        self.is_locked = False
-        self.user_id = user_id
-        self.set_pin(pin)
-        Account.bank_accounts += 1
-
-    @classmethod
-    def get_all_bank_accounts(cls) -> int:
-        return cls.bank_accounts
-
     def set_pin(self, pin: str) -> None:
         """Securely hash and store the PIN."""
         # Generate a new salt and hash the PIN
+        if not isinstance(pin, str):
+            raise ValueError("PIN must be a string")
         salt = os.urandom(32)
         self.pin_salt = salt
         self.pin_hash = hashlib.pbkdf2_hmac("sha256", pin.encode("utf-8"), salt, 100000)

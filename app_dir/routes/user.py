@@ -33,7 +33,7 @@ def change_password():
     user = get_current_user()
 
     try:
-        UserService.set_password(user.username, new_password, current_password)
+        UserService.set_new_password(user.username, new_password, current_password)
         return jsonify({"message": "Password updated successfully"}), HTTP_OK
     except Exception as e:
         return jsonify({"error": str(e)}), HTTP_SERVER_ERROR

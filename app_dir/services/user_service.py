@@ -9,8 +9,15 @@ class UserService:
     @staticmethod
     def create_user(username, password, email):
         """Create a new user"""
-        if UserService.get_user_by_username(username):
-            raise ValueError("Username already exists")
+        try:
+            if UserService.get_user_by_username(username):
+                raise SystemError("Username already exists")
+        except ValueError:
+            # we pass because internally the function has error
+            # handling for not finding a user,
+            # but in this case, we want to NOT find a user.
+            # this is why we pass.
+            pass
         user = User(username=username, email=email)
         user.set_password(password)
 
@@ -22,19 +29,23 @@ class UserService:
     @staticmethod
     def get_user_by_id(user_id):
         """Get user by ID"""
-        return User.query.get(user_id)
+        user = User.query.filter_by(user_id=user_id).first()
+        if not user:
+            raise ValueError("User not found")
+        return user
 
     @staticmethod
     def get_user_by_username(username):
         """Get user by username"""
-        return User.query.filter_by(username=username).first()
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            raise ValueError("User not found")
+        return user
 
     @staticmethod
     def update_user(user_id, **kwargs):
         """Update user details"""
-        user = User.query.get(user_id)
-        if not user:
-            raise ValueError("User not found")
+        user = UserService.get_user_by_id(user_id)
 
         for key, value in kwargs.items():
             setattr(user, key, value)
@@ -49,12 +60,8 @@ class UserService:
         or change password depending on params.
         """
         user = UserService.get_user_by_username(username)
-        if not user:
-            raise ValueError("User not found")
         if old_password and new_password:
-            from app_dir.services.auth_service import AuthService
-
-            if not AuthService.authenticate_user(username, old_password):
-                raise ValueError("User authentication failed")
+            if not user.check_password(old_password):
+                raise ValueError("Incorrect password.")
         user.set_password(new_password)
         db.session.commit()
