@@ -1,52 +1,48 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import (
-    DECIMAL,
-    DateTime,
-    Enum,
-    ForeignKey,
-    Integer,
-    String,
-)
-from sqlalchemy.orm import Mapped, declarative_base, mapped_column, relationship
-
 from app_dir.extensions import db
-
-Base = declarative_base()
 
 
 class Transaction(db.Model):
     __tablename__ = "transaction"
     # Primary key
-    transaction_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    transaction_id: db.Mapped[int] = db.mapped_column(db.Integer, primary_key=True)
 
     # Transaction details
-    transaction_type: Mapped[str] = mapped_column(
-        Enum("DEPOSIT", "WITHDRAWAL", "TRANSFER"), nullable=False
+    transaction_type: db.Mapped[str] = db.mapped_column(
+        db.Enum("DEPOSIT", "WITHDRAWAL", "TRANSFER"), nullable=False
     )
-    amount: Mapped[float] = mapped_column(DECIMAL(13, 2), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    reference_code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    amount: db.Mapped[float] = db.mapped_column(db.DECIMAL(13, 2), nullable=False)
+    description: db.Mapped[Optional[str]] = db.mapped_column(
+        db.String(255), nullable=True
+    )
+    reference_code: db.Mapped[str] = db.mapped_column(
+        db.String(50), unique=True, nullable=False
+    )
 
     # Accounts information
-    account_from: Mapped[int] = mapped_column(
-        Integer, ForeignKey("account.account_number"), nullable=False
+    account_from: db.Mapped[int] = db.mapped_column(
+        db.Integer, db.ForeignKey("account.account_number"), nullable=False
     )
-    account_to: Mapped[int] = mapped_column(
-        Integer, ForeignKey("account.account_number"), nullable=False
+    account_to: db.Mapped[int] = db.mapped_column(
+        db.Integer, db.ForeignKey("account.account_number"), nullable=False
     )
 
     # Status and tracking
-    status: Mapped[str] = mapped_column(
-        Enum("PENDING", "COMPLETED", "FAILED", "REVERSED"), default="PENDING"
+    status: db.Mapped[str] = db.mapped_column(
+        db.Enum("PENDING", "COMPLETED", "FAILED", "REVERSED"), default="PENDING"
     )
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=datetime.today())
-    balance_after: Mapped[float] = mapped_column(DECIMAL(13, 2), nullable=False)
+    timestamp: db.Mapped[datetime] = db.mapped_column(
+        db.DateTime, default=datetime.now(timezone.utc)
+    )
+    balance_after: db.Mapped[float] = db.mapped_column(
+        db.DECIMAL(13, 2), nullable=False
+    )
 
     # Relationships
-    account_from_relationship = relationship("Account", foreign_keys=[account_from])
-    account_to_relationship = relationship("Account", foreign_keys=[account_to])
+    account_from_relationship = db.relationship("Account", foreign_keys=[account_from])
+    account_to_relationship = db.relationship("Account", foreign_keys=[account_to])
 
     def get_transaction_details(self) -> dict:
         return {
