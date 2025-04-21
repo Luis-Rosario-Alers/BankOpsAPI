@@ -45,10 +45,6 @@ version1_bp.register_blueprint(auth_bp, url_prefix="/auth")
 # User management endpoints
 version1_bp.register_blueprint(user_bp, url_prefix="/users")
 
-# Account endpoints (with nested transaction routes)
-accounts_bp.register_blueprint(
-    transactions_bp, url_prefix="/<account_number>/transactions"
-)
 version1_bp.register_blueprint(accounts_bp, url_prefix="/accounts")
 
 # Global transaction endpoints

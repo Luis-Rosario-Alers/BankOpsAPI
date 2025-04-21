@@ -151,7 +151,7 @@ def create_transaction(account_number):  # TODO: refactor this function to use s
 
 @transactions_bp.route("", methods=["GET"])
 @jwt_required()
-def get_transactions(account_number):
+def get_transactions():
     """
     Get transactions for the authenticated user.
 
@@ -162,7 +162,7 @@ def get_transactions(account_number):
     Request JSON:
         * account_number (int, optional): Filter transactions by account number
         * type (str, optional): Filter transactions by type
-        * limit (int, optional): Maximum number of transactions to return (default: 20)
+        * limit (int, optional): Maximum number of transactions to return (default: 30)
         * offset (int, optional): Offset for pagination (default: 0)
 
     :status 200: Successfully retrieved transactions
@@ -174,19 +174,26 @@ def get_transactions(account_number):
     try:
         user = get_current_user()
 
-        AuthService.verify_account_ownership(user=user, account_number=account_number)
+        # Get query parameters
+        account_number = request.args.get("account_number")
+        transaction_type = request.args.get("type")
+        limit = request.args.get("limit", 30)
+        offset = request.args.get("offset", 0)
 
-        # TODO: add `get_transactions` function here.
+        if account_number:
+            AuthService.verify_account_ownership(user, int(account_number))
 
-        return (
-            jsonify(
-                {
-                    "message": "This endpoint is not implemented.",
-                    "transactions": [],
-                }
-            ),
-            HTTP_OK,
+        from app_dir.services.transaction_service import TransactionService
+
+        transactions = TransactionService.get_transactions(
+            user=user,
+            account_number=account_number,
+            transaction_type=transaction_type,
+            limit=limit,
+            offset=offset,
         )
+
+        return jsonify({"transactions": transactions}), HTTP_OK
 
     except ValueError as e:
         return jsonify({"error": str(e)}), HTTP_BAD_REQUEST
