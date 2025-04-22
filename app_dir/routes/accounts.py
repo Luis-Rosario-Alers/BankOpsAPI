@@ -173,7 +173,7 @@ def get_account(account_number):
 
     :return: JSON containing account details
     """
-    identity = get_jwt_identity()
+    user = get_current_user()
 
     try:
         account = Account.query.filter_by(account_number=account_number).first()
@@ -181,7 +181,8 @@ def get_account(account_number):
         if not account:
             return jsonify({"error": "Account not found"}), HTTP_RESOURCE_NOT_FOUND
 
-        if account.user_id != identity.user_id:
+        if account.user_id != user.user_id:
+            # TODO: use auth account ownership function instead.
             return (
                 jsonify({"error": "You are not authorized to access this account"}),
                 HTTP_UNAUTHORIZED,
@@ -195,7 +196,6 @@ def get_account(account_number):
                         "account_name": account.account_name,
                         "account_type": account.account_type,
                         "balance": account.balance,
-                        "currency": account.currency,
                         "holder": account.account_holder,
                     }
                 }

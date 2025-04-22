@@ -52,6 +52,8 @@ class Transaction(db.Model):
         return {
             "transaction_id": self.transaction_id,
             "transaction_type": self.transaction_type,
+            "account_from": self.account_from,
+            "account_to": self.account_to,
             "amount": self.amount,
             "description": self.description,
             "reference_code": self.reference_code,
