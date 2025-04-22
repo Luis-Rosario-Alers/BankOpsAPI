@@ -8,7 +8,7 @@ class Transaction(db.Model):
     __tablename__ = "transaction"
     # Primary key
     transaction_id: db.Mapped[int] = db.mapped_column(
-        db.Integer, primary_key=True, autoincrement=True, default=1
+        db.Integer, primary_key=True, autoincrement=True
     )
 
     # Transaction details
