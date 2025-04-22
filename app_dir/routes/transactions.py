@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
 
@@ -15,7 +17,7 @@ transactions_bp = Blueprint("transactions", __name__)
 
 @transactions_bp.route("", methods=["POST"])
 @jwt_required()
-def create_transaction():  # TODO: refactor this function to use services
+def create_transaction():
     """
     Create a new transaction (deposit, withdrawal, or transfer).
 
@@ -45,113 +47,77 @@ def create_transaction():  # TODO: refactor this function to use services
         return jsonify({"error": "Missing request data"}), HTTP_BAD_REQUEST
 
     transaction_type = data.get("type")
-    amount = data.get("amount")
+    amount = Decimal(data.get("amount"))
     description = data.get("description", "")
 
     if not transaction_type or not amount:
-        return (
-            jsonify({"error": "Transaction type and amount are required"}),
-            HTTP_BAD_REQUEST,
-        )
+        return jsonify({"error": "Transaction type and amount are required"}), HTTP_BAD_REQUEST
 
     user = get_current_user()
 
+    # Define transaction requirements and error messages
+    transaction_configs = {
+        "transfer": {
+            "required_fields": {
+                "from_account": data.get("from_account"),
+                "to_account": data.get("to_account")
+            },
+            "error_message": "Source and destination accounts are required for transfers",
+            "handler": lambda: AccountService.transfer(
+                data.get("from_account"),
+                data.get("to_account"),
+                amount,
+                description,
+                user
+            )
+        },
+        "withdrawal": {
+            "required_fields": {
+                "account_number": data.get("account_number") or data.get("from_account")
+            },
+            "error_message": "Account number is required for withdrawals",
+            "handler": lambda: AccountService.withdrawal(
+                data.get("account_number") or data.get("from_account"),
+                amount,
+                description,
+                user
+            )
+        },
+        "deposit": {
+            "required_fields": {
+                "account_number": data.get("account_number") or data.get("to_account")
+            },
+            "error_message": "Account number is required for deposits",
+            "handler": lambda: AccountService.deposit(
+                data.get("account_number") or data.get("to_account"),
+                amount,
+                description,
+                user
+            )
+        }
+    }
+
     try:
-        if transaction_type.lower() == "transfer":
-            from_account = data.get("from_account")
-            to_account = data.get("to_account")
+        transaction_type = transaction_type.lower()
 
-            if not from_account or not to_account:
-                return (
-                    jsonify(
-                        {
-                            "error": "Source and destination accounts "
-                            "are required for transfers"
-                        }
-                    ),
-                    HTTP_BAD_REQUEST,
-                )
+        # Check if the transaction type is valid
+        if transaction_type not in transaction_configs:
+            return jsonify({"error": f"Unknown transaction type: {transaction_type}"}), HTTP_BAD_REQUEST
 
-            AccountService.transfer(from_account, to_account, amount, description, user)
-            return (
-                jsonify(
-                    {
-                        "message": "Transfer successful",
-                        "transaction": {
-                            "type": "transfer",
-                            "from_account": from_account,
-                            "to_account": to_account,
-                            "amount": amount,
-                            "description": description,
-                        },
-                    }
-                ),
-                HTTP_CREATED,
-            )
+        # Get configuration for this transaction type
+        config = transaction_configs[transaction_type]
 
-        elif transaction_type.lower() == "withdrawal":
-            account_number = data.get("account_number") or data.get("from_account")
+        # Check if all required fields are provided
+        if any(not value for value in config["required_fields"].values()):
+            return jsonify({"error": config["error_message"]}), HTTP_BAD_REQUEST
 
-            if not account_number:
-                return (
-                    jsonify({"error": "Account number is required for withdrawals"}),
-                    HTTP_BAD_REQUEST,
-                )
-
-            AccountService.withdrawal(account_number, amount, description, user)
-            return (
-                jsonify(
-                    {
-                        "message": "Withdrawal successful",
-                        "transaction": {
-                            "type": "withdrawal",
-                            "account": account_number,
-                            "amount": amount,
-                            "description": description,
-                        },
-                    }
-                ),
-                HTTP_CREATED,
-            )
-
-        elif transaction_type.lower() == "deposit":
-            account_number = data.get("account_number") or data.get("to_account")
-
-            if not account_number:
-                return (
-                    jsonify({"error": "Account number is required for deposits"}),
-                    HTTP_BAD_REQUEST,
-                )
-
-            transaction = AccountService.deposit(
-                account_number, amount, description, user
-            )
-            return (
-                jsonify(
-                    {
-                        "message": "Deposit successful",
-                        "transaction": {
-                            "type": transaction.transaction_type,
-                            "account_from": transaction.account_from,
-                            "account_to": transaction.account_to,
-                            "amount": transaction.amount,
-                            "description": transaction.description,
-                            "transaction_id": transaction.transaction_id,
-                            "balance_after": transaction.balance_after,
-                        },
-                    }
-                ),
-                HTTP_CREATED,
-            )
-
-        else:
-            return (
-                jsonify({"error": f"Unknown transaction type: {transaction_type}"}),
-                HTTP_BAD_REQUEST,
-            )
+        # Execute the transaction
+        transaction = config["handler"]()
 
     except Exception as e:
-        return jsonify({"error": str(e)}), HTTP_BAD_REQUEST
+        return jsonify({"error": str(e)}), HTTP_SERVER_ERROR
+
+    return jsonify(transaction.get_transaction_details()), HTTP_CREATED
 
 
 @transactions_bp.route("", methods=["GET"])

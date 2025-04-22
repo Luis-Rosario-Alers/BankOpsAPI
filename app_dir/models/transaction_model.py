@@ -15,7 +15,9 @@ class Transaction(db.Model):
     transaction_type: db.Mapped[str] = db.mapped_column(
         db.Enum("DEPOSIT", "WITHDRAWAL", "TRANSFER"), nullable=False
     )
+
     amount: db.Mapped[float] = db.mapped_column(db.DECIMAL(13, 2), nullable=False)
+
     description: db.Mapped[Optional[str]] = db.mapped_column(
         db.String(255), nullable=True
     )
@@ -23,7 +25,7 @@ class Transaction(db.Model):
         db.String(50), unique=True, nullable=False
     )
 
-    # Accounts information
+    # Account information
     account_from: db.Mapped[int] = db.mapped_column(
         db.Integer, db.ForeignKey("account.account_number"), nullable=False
     )

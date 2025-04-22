@@ -10,16 +10,24 @@ from app_dir.services.auth_service import AuthService
 class AccountService:
     def __init__(self):
         pass
-
+# TODO: Add reference code generation for transactions. (most likely in the transaction model)
     @staticmethod
     def transfer(
         from_account_number, to_account_number, amount, description=None, user=None
     ):
         """Process a transfer between two accounts"""
+        from_account = Account.query.get(from_account_number)
+        to_account = Account.query.get(to_account_number)
+        transaction = Transaction(
+            account_from=from_account_number,
+            account_to=to_account_number,
+            amount=amount,
+            timestamp=datetime.now(timezone.utc),
+            transaction_type="TRANSFER",
+            description=description or f"Transfer of ${amount:.2f}",
+        )
+
         try:
-            amount = Decimal(amount)
-            from_account = Account.query.get(from_account_number)
-            to_account = Account.query.get(to_account_number)
             # We always assume that the user is the one who owns the from_account
             # and to_account is the one that is being transferred to.
             # This is a security measure to ensure that the user is not transferring
@@ -50,66 +58,34 @@ class AccountService:
             from_account.balance -= amount
             to_account.balance += amount
 
-            transaction = Transaction(
-                account_from=from_account_number,
-                account_to=to_account_number,
-                amount=amount,
-                transaction_type="TRANSFER",
-                description=description or f"Transfer of ${amount:.2f}",
-                balance_after=from_account.balance,
-            )
+            transaction.balance_after = from_account.balance
+            transaction.status = "COMPLETED"
+
             db.session.add(transaction)
             db.session.commit()
-            return from_account.balance
+            return transaction
 
-        except Exception:
+        except Exception as e:
+            transaction.status = "FAILED"
+            transaction.balance_after = from_account.balance
+            transaction.reason = str(e)
             db.session.rollback()
-            raise
+            return transaction
 
     @staticmethod
     def deposit(account_number, amount, description=None, user=None):
         """Process a deposit to an account"""
+        account = Account.query.get(account_number)
+        transaction = Transaction(
+            account_from=account_number,
+            account_to=account_number,
+            amount=amount,
+            timestamp=datetime.now(timezone.utc),
+            transaction_type="DEPOSIT",
+            description=description or f"Deposit of ${amount:.2f}",
+        )
+
         try:
-            # this is necessary because the amount must be the same
-            # type as the balance for arithmetic operations i.e., Decimal
-            amount = Decimal(amount)
-            account = Account.query.get(account_number)
-            if not account:
-                raise ValueError(f"Account {account_number} not found")
-            if account.is_locked:
-                raise ValueError(f"Account {account_number} is locked")
-            if amount < 0:
-                raise ValueError("Deposit amount cannot be negative")
-            account.latest_transaction_change = +amount
-
-            account.balance += amount
-            # Create a transaction record
-            transaction = Transaction(
-                account_from=account_number,
-                account_to=account_number,
-                amount=amount,
-                balance_after=account.balance,
-                transaction_type="DEPOSIT",
-                description=description or f"Deposit of ${amount:.2f}",
-            )
-
-            db.session.add(transaction)
-
-            db.session.commit()
-            # logger.info(f"Deposit of {amount} to account {account_id} successful")
-            return transaction
-
-        except Exception:
-            db.session.rollback()
-            # logger.error(f"Deposit failed: {str(e)}")
-            raise
-
-    @staticmethod
-    def withdrawal(account_number, amount, description=None, user=None):
-        """Process a withdrawal from an account"""
-        try:
-            amount = Decimal(amount)
-            account = Account.query.get(account_number)
             if not AuthService.verify_account_ownership(user, account_number):
                 raise ValueError("Account does not belong to the user")
             if not account:
@@ -118,32 +94,68 @@ class AccountService:
                 raise ValueError(f"Account {account_number} is locked")
             if amount < 0:
                 raise ValueError("Withdraw amount cannot be negative")
-            if amount <= account.balance:
 
-                account.latest_transaction_change = -amount
+            account.latest_transaction_change = -amount
+            account.balance += amount
 
-                account.balance -= amount
+            transaction.balance_after = account.balance
+            transaction.status = "COMPLETED"
 
-                transaction = Transaction(
-                    account_from=account_number,
-                    account_to=account_number,
-                    balance_after=account.balance,
-                    amount=amount,
-                    status="COMPLETED",
-                    timestamp=datetime.now(timezone.utc),
-                    transaction_type="WITHDRAWAL",
-                    description=description or f"Withdrawal of ${amount:.2f}",
-                )
-                db.session.add(transaction)
+            db.session.add(transaction)
 
-                db.session.commit()
-                return account.balance
-            else:
+            db.session.commit()
+            return transaction
+        except ValueError as e:
+            transaction.status = "FAILED"
+            transaction.balance_after = account.balance
+            transaction.reason = str(e)
+            db.session.add(transaction)
+            db.session.commit()
+            return transaction
+
+    @staticmethod
+    def withdrawal(account_number, amount, description=None, user=None):
+        """Process a withdrawal from an account"""
+        account = Account.query.get(account_number)
+        transaction = Transaction(
+            account_from=account_number,
+            account_to=account_number,
+            amount=amount,
+            timestamp=datetime.now(timezone.utc),
+            transaction_type="WITHDRAWAL",
+            description=description or f"Withdrawal of ${amount:.2f}",
+        )
+
+        try:
+            if not AuthService.verify_account_ownership(user, account_number):
+                raise ValueError("Account does not belong to the user")
+            if not account:
+                raise ValueError(f"Account {account_number} not found")
+            if account.is_locked:
+                raise ValueError(f"Account {account_number} is locked")
+            if amount < 0:
+                raise ValueError("Withdraw amount cannot be negative")
+            if amount > account.balance:
                 raise ValueError("Not enough funds in account.")
-        except Exception:
-            db.session.rollback()
+
+            account.latest_transaction_change = -amount
+            account.balance -= amount
+
+            transaction.balance_after = account.balance
+            transaction.status = "COMPLETED"
+
+            db.session.add(transaction)
+
+            db.session.commit()
+            return transaction
+        except ValueError as e:
+            transaction.status = "FAILED"
+            transaction.balance_after = account.balance
+            transaction.reason = str(e) # TODO: add exception system for fail reasoning
+            db.session.add(transaction)
+            db.session.commit()
             # TODO: Add better logging.
-            raise
+            return transaction
 
     @staticmethod
     def change_account_pin(user_id, account_number, current_pin, new_pin):
