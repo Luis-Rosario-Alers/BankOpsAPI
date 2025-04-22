@@ -7,6 +7,7 @@ load_dotenv("env/config.env")
 
 class Config:
     """Base configuration."""
+
     DEBUG = False
     TESTING = False
     SECRET_KEY = os.getenv("SECRET_KEY")
@@ -21,4 +22,5 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     """Production configuration."""
+
     pass

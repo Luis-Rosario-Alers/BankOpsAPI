@@ -10,7 +10,8 @@ from app_dir.services.auth_service import AuthService
 class AccountService:
     def __init__(self):
         pass
-# TODO: Add reference code generation for transactions. (most likely in the transaction model)
+
+    # TODO: Add reference code generation for transactions. (most likely in the transaction model)
     @staticmethod
     def transfer(
         from_account_number, to_account_number, amount, description=None, user=None
@@ -151,7 +152,7 @@ class AccountService:
         except ValueError as e:
             transaction.status = "FAILED"
             transaction.balance_after = account.balance
-            transaction.reason = str(e) # TODO: add exception system for fail reasoning
+            transaction.reason = str(e)  # TODO: add exception system for fail reasoning
             db.session.add(transaction)
             db.session.commit()
             # TODO: Add better logging.

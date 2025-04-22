@@ -51,7 +51,10 @@ def create_transaction():
     description = data.get("description", "")
 
     if not transaction_type or not amount:
-        return jsonify({"error": "Transaction type and amount are required"}), HTTP_BAD_REQUEST
+        return (
+            jsonify({"error": "Transaction type and amount are required"}),
+            HTTP_BAD_REQUEST,
+        )
 
     user = get_current_user()
 
@@ -60,7 +63,7 @@ def create_transaction():
         "transfer": {
             "required_fields": {
                 "from_account": data.get("from_account"),
-                "to_account": data.get("to_account")
+                "to_account": data.get("to_account"),
             },
             "error_message": "Source and destination accounts are required for transfers",
             "handler": lambda: AccountService.transfer(
@@ -68,8 +71,8 @@ def create_transaction():
                 data.get("to_account"),
                 amount,
                 description,
-                user
-            )
+                user,
+            ),
         },
         "withdrawal": {
             "required_fields": {
@@ -80,8 +83,8 @@ def create_transaction():
                 data.get("account_number") or data.get("from_account"),
                 amount,
                 description,
-                user
-            )
+                user,
+            ),
         },
         "deposit": {
             "required_fields": {
@@ -92,9 +95,9 @@ def create_transaction():
                 data.get("account_number") or data.get("to_account"),
                 amount,
                 description,
-                user
-            )
-        }
+                user,
+            ),
+        },
     }
 
     try:
@@ -102,7 +105,10 @@ def create_transaction():
 
         # Check if the transaction type is valid
         if transaction_type not in transaction_configs:
-            return jsonify({"error": f"Unknown transaction type: {transaction_type}"}), HTTP_BAD_REQUEST
+            return (
+                jsonify({"error": f"Unknown transaction type: {transaction_type}"}),
+                HTTP_BAD_REQUEST,
+            )
 
         # Get configuration for this transaction type
         config = transaction_configs[transaction_type]
