@@ -217,7 +217,7 @@ def get_accounts(user_id):
     :status 200: Successfully retrieved accounts
     :status 500: Server error
 
-    :return: JSON containing a list of accounts
+    :return: JSON contains a list of accounts
     """
     try:
         current_user = get_current_user()
@@ -232,7 +232,8 @@ def get_accounts(user_id):
                 "account_number": account.account_number,
                 "account_name": account.account_name,
                 "account_type": account.account_type,
-                "balance": f"${account.balance}",
+                "balance": f"{account.balance}",
+                "latest_balance_change": account.latest_balance_change,
             }
             for account in accounts
         ]

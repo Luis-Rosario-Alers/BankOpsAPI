@@ -7,7 +7,9 @@ from app_dir.extensions import db
 class Transaction(db.Model):
     __tablename__ = "transaction"
     # Primary key
-    transaction_id: db.Mapped[int] = db.mapped_column(db.Integer, primary_key=True)
+    transaction_id: db.Mapped[int] = db.mapped_column(
+        db.Integer, primary_key=True, autoincrement=True, default=1
+    )
 
     # Transaction details
     transaction_type: db.Mapped[str] = db.mapped_column(

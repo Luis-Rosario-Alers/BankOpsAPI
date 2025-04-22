@@ -46,6 +46,12 @@ class Account(db.Model):
     interest_rate: db.Mapped[float] = db.mapped_column(
         db.DECIMAL(6, 3), nullable=False, default=0.0
     )
+    latest_balance_change: db.Mapped[float] = db.mapped_column(
+        db.DECIMAL(13, 2), nullable=False, default=0.0
+    )
+    last_transaction_date: db.Mapped[datetime] = db.mapped_column(
+        db.DateTime, nullable=False, default=datetime.now(timezone.utc)
+    )
 
     # Security information
     pin_hash: db.Mapped[bytes] = db.mapped_column(db.LargeBinary, nullable=False)

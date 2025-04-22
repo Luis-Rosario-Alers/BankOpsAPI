@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from app_dir.extensions import db
 from app_dir.models.account_model import Account
@@ -16,6 +17,7 @@ class AccountService:
     ):
         """Process a transfer between two accounts"""
         try:
+            amount = Decimal(amount)
             from_account = Account.query.get(from_account_number)
             to_account = Account.query.get(to_account_number)
             # We always assume that the user is the one who owns the from_account
@@ -41,6 +43,10 @@ class AccountService:
             if amount > from_account.balance:
                 raise ValueError("Not enough funds in account")
 
+            # Show transfer between accounts properly
+            from_account.latest_transaction_change = -amount
+            to_account.latest_transaction_change = +amount
+
             from_account.balance -= amount
             to_account.balance += amount
 
@@ -57,7 +63,6 @@ class AccountService:
             return from_account.balance
 
         except Exception:
-
             db.session.rollback()
             raise
 
@@ -65,6 +70,9 @@ class AccountService:
     def deposit(account_number, amount, description=None, user=None):
         """Process a deposit to an account"""
         try:
+            # this is necessary because the amount must be the same
+            # type as the balance for arithmetic operations i.e., Decimal
+            amount = Decimal(amount)
             account = Account.query.get(account_number)
             if not account:
                 raise ValueError(f"Account {account_number} not found")
@@ -72,20 +80,24 @@ class AccountService:
                 raise ValueError(f"Account {account_number} is locked")
             if amount < 0:
                 raise ValueError("Deposit amount cannot be negative")
+            account.latest_transaction_change = +amount
+
             account.balance += amount
-            # Create transaction record
+            # Create a transaction record
             transaction = Transaction(
                 account_from=account_number,
                 account_to=account_number,
                 amount=amount,
+                balance_after=account.balance,
                 transaction_type="DEPOSIT",
                 description=description or f"Deposit of ${amount:.2f}",
             )
+
             db.session.add(transaction)
 
             db.session.commit()
             # logger.info(f"Deposit of {amount} to account {account_id} successful")
-            return account.balance
+            return transaction
 
         except Exception:
             db.session.rollback()
@@ -96,6 +108,7 @@ class AccountService:
     def withdrawal(account_number, amount, description=None, user=None):
         """Process a withdrawal from an account"""
         try:
+            amount = Decimal(amount)
             account = Account.query.get(account_number)
             if not AuthService.verify_account_ownership(user, account_number):
                 raise ValueError("Account does not belong to the user")
@@ -106,6 +119,9 @@ class AccountService:
             if amount < 0:
                 raise ValueError("Withdraw amount cannot be negative")
             if amount <= account.balance:
+
+                account.latest_transaction_change = -amount
+
                 account.balance -= amount
 
                 transaction = Transaction(

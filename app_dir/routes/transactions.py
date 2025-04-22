@@ -15,7 +15,7 @@ transactions_bp = Blueprint("transactions", __name__)
 
 @transactions_bp.route("", methods=["POST"])
 @jwt_required()
-def create_transaction(account_number):  # TODO: refactor this function to use services
+def create_transaction():  # TODO: refactor this function to use services
     """
     Create a new transaction (deposit, withdrawal, or transfer).
 
@@ -123,16 +123,21 @@ def create_transaction(account_number):  # TODO: refactor this function to use s
                     HTTP_BAD_REQUEST,
                 )
 
-            AccountService.deposit(account_number, amount, description, user)
+            transaction = AccountService.deposit(
+                account_number, amount, description, user
+            )
             return (
                 jsonify(
                     {
                         "message": "Deposit successful",
                         "transaction": {
-                            "type": "deposit",
-                            "account": account_number,
-                            "amount": amount,
-                            "description": description,
+                            "type": transaction.transaction_type,
+                            "account_from": transaction.account_from,
+                            "account_to": transaction.account_to,
+                            "amount": transaction.amount,
+                            "description": transaction.description,
+                            "transaction_id": transaction.transaction_id,
+                            "balance_after": transaction.balance_after,
                         },
                     }
                 ),
