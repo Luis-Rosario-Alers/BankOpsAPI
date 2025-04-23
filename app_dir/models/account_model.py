@@ -1,19 +1,7 @@
-import datetime
 import hashlib
 import logging
 import os
-
-from sqlalchemy import (
-    DECIMAL,
-    Boolean,
-    DateTime,
-    Enum,
-    ForeignKey,
-    Integer,
-    LargeBinary,
-    String,
-)
-from sqlalchemy.orm import Mapped
+from datetime import datetime, timezone
 
 from app_dir.extensions import db
 
@@ -32,38 +20,59 @@ class Account(db.Model):
     }
 
     # Identity columns
-    account_number: Mapped[int] = db.mapped_column(
-        Integer, primary_key=True, autoincrement=True, unique=True
+    account_number: db.Mapped[int] = db.mapped_column(
+        db.Integer, primary_key=True, autoincrement=True, unique=True
     )  # TODO: make account number unique and not simply autoincrement.
-    user_id: Mapped[int] = db.mapped_column(
-        Integer, ForeignKey("user.user_id"), nullable=False
+    user_id: db.Mapped[int] = db.mapped_column(
+        db.Integer, db.ForeignKey("user.user_id"), nullable=False
     )
 
     # Account information
-    account_holder: Mapped[str] = db.mapped_column(String(45), nullable=False)
-    account_type: Mapped[str] = db.mapped_column(
-        Enum("CHECKING", "SAVINGS", "CERTIFICATE OF DEPOSIT"), nullable=False
+    account_holder: db.Mapped[str] = db.mapped_column(db.String(45), nullable=False)
+    account_type: db.Mapped[str] = db.mapped_column(
+        db.Enum("CHECKING", "SAVINGS", "CERTIFICATE OF DEPOSIT"), nullable=False
     )
-    account_name: Mapped[str] = db.mapped_column(String(45), nullable=False)
-    creation_date: Mapped[datetime.datetime] = db.mapped_column(
-        DateTime, nullable=False, default=datetime.datetime.now(datetime.timezone.utc)
+    account_name: db.Mapped[str] = db.mapped_column(db.String(45), nullable=False)
+    creation_date: db.Mapped[datetime] = db.mapped_column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.now(timezone.utc),
     )
 
     # Financial details
-    balance: Mapped[float] = db.mapped_column(
-        DECIMAL(13, 2), nullable=False, default=0.0
+    balance: db.Mapped[float] = db.mapped_column(
+        db.DECIMAL(13, 2), nullable=False, default=0.0
     )
-    interest_rate: Mapped[float] = db.mapped_column(
-        DECIMAL(6, 3), nullable=False, default=0.0
+    interest_rate: db.Mapped[float] = db.mapped_column(
+        db.DECIMAL(6, 3), nullable=False, default=0.0
+    )
+    latest_balance_change: db.Mapped[float] = db.mapped_column(
+        db.DECIMAL(13, 2), nullable=False, default=0.0
+    )
+    last_transaction_date: db.Mapped[datetime] = db.mapped_column(
+        db.DateTime, nullable=False, default=datetime.now(timezone.utc)
     )
 
     # Security information
-    pin_hash: Mapped[bytes] = db.mapped_column(LargeBinary, nullable=False)
-    pin_salt: Mapped[bytes] = db.mapped_column(LargeBinary, nullable=False)
-    is_locked: Mapped[bool] = db.mapped_column(Boolean, default=False)
+    pin_hash: db.Mapped[bytes] = db.mapped_column(db.LargeBinary, nullable=False)
+    pin_salt: db.Mapped[bytes] = db.mapped_column(db.LargeBinary, nullable=False)
+    is_locked: db.Mapped[bool] = db.mapped_column(db.Boolean, default=False)
 
     # Relationships
     user = db.relationship("User", back_populates="accounts")
+
+    def get_account_details(self):
+        return {
+            "account_number": self.account_number,
+            "account_holder": self.account_holder,
+            "account_type": self.valid_account_types[self.account_type],
+            "account_name": self.account_name,
+            "balance": self.balance,
+            "interest_rate": self.interest_rate,
+            "latest_balance_change": self.latest_balance_change,
+            "last_transaction_date": self.last_transaction_date,
+            "is_locked": self.is_locked,
+        }
 
     def set_pin(self, pin: str) -> None:
         """Securely hash and store the PIN."""

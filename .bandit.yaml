@@ -1,2 +1,2 @@
 # FILE: bandit.yaml
-exclude_dirs: ['tests']
+exclude_dirs: [ 'tests' ]

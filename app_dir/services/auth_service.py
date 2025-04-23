@@ -6,6 +6,7 @@ from flask import jsonify
 from app_dir.constants.http_status import HTTP_UNAUTHORIZED
 from app_dir.extensions import jwt
 from app_dir.models.account_model import Account
+from app_dir.models.jwttoken import JWTToken
 from app_dir.models.user_model import User
 from app_dir.services.user_service import UserService
 
@@ -37,12 +38,26 @@ def unauthenticated_response(auth_error_response: str):
     return jsonify({"error": auth_error_response}), HTTP_UNAUTHORIZED
 
 
+@jwt.token_in_blocklist_loader
+def token_in_blocklist(jwt_header, jwt_payload):
+    try:
+        identity = jwt_payload["jti"]
+        token = JWTToken.query.filter_by(id=identity).one_or_none()
+        if token and token.is_blacklisted:
+            return True
+        return False
+    except ValueError:
+        return False
+
+
 class AuthService:
     """AuthService handles authentication-related operations."""
 
     @staticmethod
     def authenticate_account(user, account_number: int, pin: str):
         """Verify if the provided PIN is correct."""
+        if not isinstance(account_number, int) or not isinstance(pin, str):
+            raise ValueError("Account number must be an integer and PIN must be a string")
         account = Account.query.get(account_number)
         if not account:
             raise ValueError(f"Account {account_number} not found")
@@ -90,6 +105,8 @@ class AuthService:
     @staticmethod
     def verify_account_ownership(user: User, account_number: int) -> bool:
         """Verify if the user owns the account."""
+        if not isinstance(account_number, int):
+            raise ValueError("Account number must be an integer")
         account = Account.query.get(account_number)
         if not account:
             raise ValueError(f"Account {account_number} not found")

@@ -23,5 +23,4 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     """Production configuration."""
 
-    SECRET_KEY = os.getenv("SECRET_KEY")
-    DATABASE_URI = os.getenv("DATABASE_URI")
+    pass

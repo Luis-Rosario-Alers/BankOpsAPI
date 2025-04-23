@@ -1,7 +1,8 @@
-flask
-flask-jwt-extended
+flask~=3.1.0
+flask-cors~=5.0.1
+flask-jwt-extended~=4.7.1
 flask-sqlalchemy
 flask_cors
 mysql-connector-python
-python-dotenv
-sqlalchemy
+python-dotenv~=1.1.0
+sqlalchemy~=2.0.40

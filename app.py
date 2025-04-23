@@ -19,6 +19,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 app_config = os.environ.get("FLASK_ENV", "development")
+
 if app_config == "production":
     app.config.from_object("config.config.ProductionConfig")
 else:
@@ -35,14 +36,23 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # Initialize extensions
 init_extensions(app)
 
-# These blueprints are set up like this because it allows me to be able to use
-# pycharm HTTP client to test the endpoints.
-bp = Blueprint("api", __name__, url_prefix="/api")
-bp.register_blueprint(auth_bp, url_prefix="/auth")
-bp.register_blueprint(accounts_bp, url_prefix="/accounts")
-bp.register_blueprint(transactions_bp, url_prefix="/transactions")
-bp.register_blueprint(user_bp, url_prefix="/user")
-app.register_blueprint(bp)
+api_bp = Blueprint("api", __name__, url_prefix="/api")
+version1_bp = Blueprint("v1", __name__, url_prefix="/v1")
+
+# Authentication endpoints
+version1_bp.register_blueprint(auth_bp, url_prefix="/auth")
+
+# User management endpoints
+version1_bp.register_blueprint(user_bp, url_prefix="/users")
+
+version1_bp.register_blueprint(accounts_bp, url_prefix="/accounts")
+
+# Global transaction endpoints
+version1_bp.register_blueprint(transactions_bp, url_prefix="/transactions")
+
+# Register the versioned API under the main API blueprint
+api_bp.register_blueprint(version1_bp)
+app.register_blueprint(api_bp)
 
 
 # Error handlers
@@ -56,4 +66,6 @@ def server_error(error):
     return jsonify({"error": "Internal server error"}), HTTP_SERVER_ERROR
 
 
-app.run(host="127.0.0.1", port=5000)
+# Create the application instance
+if __name__ == "__main__":
+    app.run(host="127.0.0.1", port=5000)
