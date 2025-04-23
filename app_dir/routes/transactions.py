@@ -50,7 +50,7 @@ def create_transaction():
     amount = Decimal(data.get("amount"))
     description = data.get("description", "")
 
-    if not transaction_type or not amount:
+    if not transaction_type or amount is None:
         return (
             jsonify({"error": "Transaction type and amount are required"}),
             HTTP_BAD_REQUEST,
