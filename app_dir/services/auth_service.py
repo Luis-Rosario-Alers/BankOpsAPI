@@ -56,8 +56,8 @@ class AuthService:
     @staticmethod
     def authenticate_account(user, account_number: int, pin: str):
         """Verify if the provided PIN is correct."""
-        if not isinstance(account_number, str) or not isinstance(pin, str):
-            raise ValueError("Account number and PIN must be strings")
+        if not isinstance(account_number, int) or not isinstance(pin, str):
+            raise ValueError("Account number must be an integer and PIN must be a string")
         account = Account.query.get(account_number)
         if not account:
             raise ValueError(f"Account {account_number} not found")
