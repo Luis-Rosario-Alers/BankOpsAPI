@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from decimal import Decimal
 
 from app_dir.extensions import db
 from app_dir.models.account_model import Account
@@ -11,7 +10,8 @@ class AccountService:
     def __init__(self):
         pass
 
-    # TODO: Add reference code generation for transactions. (most likely in the transaction model)
+    # TODO: Add reference code generation for transactions.
+    #  (most likely in the transaction model)
     @staticmethod
     def transfer(
         from_account_number, to_account_number, amount, description=None, user=None
@@ -19,6 +19,10 @@ class AccountService:
         """Process a transfer between two accounts"""
         from_account = Account.query.get(from_account_number)
         to_account = Account.query.get(to_account_number)
+        if not from_account or not to_account:
+            raise ValueError(
+                f"Accounts not found for {from_account_number} and {to_account_number}"
+            )
         transaction = Transaction(
             account_from=from_account_number,
             account_to=to_account_number,
@@ -35,8 +39,6 @@ class AccountService:
             # money to an account they do not own.
             if not AuthService.verify_account_ownership(user, from_account_number):
                 raise ValueError("sender account does not belong to the user")
-            if not AuthService.verify_account_ownership(user, to_account_number):
-                raise ValueError("receiver account does not belong to the user")
 
             # Check if accounts exist
             if not from_account or not to_account:
@@ -52,9 +54,8 @@ class AccountService:
             if amount > from_account.balance:
                 raise ValueError("Not enough funds in account")
 
-            # Show transfer between accounts properly
-            from_account.latest_transaction_change = -amount
-            to_account.latest_transaction_change = +amount
+            from_account.latest_balance_change = -amount
+            to_account.latest_balance_change = +amount
 
             from_account.balance -= amount
             to_account.balance += amount
@@ -77,6 +78,8 @@ class AccountService:
     def deposit(account_number, amount, description=None, user=None):
         """Process a deposit to an account"""
         account = Account.query.get(account_number)
+        if not account:
+            raise ValueError(f"Account {account_number} not found")
         transaction = Transaction(
             account_from=account_number,
             account_to=account_number,
@@ -96,7 +99,7 @@ class AccountService:
             if amount < 0:
                 raise ValueError("Withdraw amount cannot be negative")
 
-            account.latest_transaction_change = -amount
+            account.latest_balance_change = +amount
             account.balance += amount
 
             transaction.balance_after = account.balance
@@ -118,6 +121,8 @@ class AccountService:
     def withdrawal(account_number, amount, description=None, user=None):
         """Process a withdrawal from an account"""
         account = Account.query.get(account_number)
+        if not account:
+            raise ValueError(f"Account {account_number} not found")
         transaction = Transaction(
             account_from=account_number,
             account_to=account_number,
@@ -139,7 +144,7 @@ class AccountService:
             if amount > account.balance:
                 raise ValueError("Not enough funds in account.")
 
-            account.latest_transaction_change = -amount
+            account.latest_balance_change = -amount
             account.balance -= amount
 
             transaction.balance_after = account.balance

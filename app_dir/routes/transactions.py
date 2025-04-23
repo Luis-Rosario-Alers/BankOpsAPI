@@ -40,7 +40,7 @@ def create_transaction():
     :status 400: Missing required fields or validation error
     :status 500: Server error
 
-    :return: JSON with success message or error
+    :return: JSON with a success message or error
     """
     data = request.get_json()
     if not data:
@@ -55,7 +55,6 @@ def create_transaction():
             jsonify({"error": "Transaction type and amount are required"}),
             HTTP_BAD_REQUEST,
         )
-
     user = get_current_user()
 
     # Define transaction requirements and error messages
@@ -65,7 +64,8 @@ def create_transaction():
                 "from_account": data.get("from_account"),
                 "to_account": data.get("to_account"),
             },
-            "error_message": "Source and destination accounts are required for transfers",
+            "error_message": "Source and destination accounts "
+            "are required for transfers",
             "handler": lambda: AccountService.transfer(
                 data.get("from_account"),
                 data.get("to_account"),
@@ -111,7 +111,7 @@ def create_transaction():
             )
 
         # Get configuration for this transaction type
-        config = transaction_configs[transaction_type]
+        config = transaction_configs[transaction_type.lower()]
 
         # Check if all required fields are provided
         if any(not value for value in config["required_fields"].values()):
