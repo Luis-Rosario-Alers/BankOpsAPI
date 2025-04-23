@@ -61,6 +61,19 @@ class Account(db.Model):
     # Relationships
     user = db.relationship("User", back_populates="accounts")
 
+    def get_account_details(self):
+        return {
+            "account_number": self.account_number,
+            "account_holder": self.account_holder,
+            "account_type": self.valid_account_types[self.account_type],
+            "account_name": self.account_name,
+            "balance": self.balance,
+            "interest_rate": self.interest_rate,
+            "latest_balance_change": self.latest_balance_change,
+            "last_transaction_date": self.last_transaction_date,
+            "is_locked": self.is_locked,
+        }
+
     def set_pin(self, pin: str) -> None:
         """Securely hash and store the PIN."""
         # Generate a new salt and hash the PIN

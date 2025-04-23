@@ -134,15 +134,7 @@ def get_current_user_profile():
     try:
         current_user = get_current_user()
         return (
-            jsonify(
-                {
-                    "user": {
-                        "id": current_user.user_id,
-                        "username": current_user.username,
-                        "email": current_user.email,
-                    }
-                }
-            ),
+            jsonify({"user": current_user.get_user_profile()}),
             HTTP_OK,
         )
     except Exception as e:
@@ -227,16 +219,7 @@ def get_accounts(user_id):
         ]:
             raise ValueError("Unauthorized to retrieve accounts for this user")
         accounts = Account.query.filter_by(user_id=user_id).all()
-        account_list = [
-            {
-                "account_number": account.account_number,
-                "account_name": account.account_name,
-                "account_type": account.account_type,
-                "balance": f"{account.balance}",
-                "latest_balance_change": account.latest_balance_change,
-            }
-            for account in accounts
-        ]
+        account_list = [account.get_account_details() for account in accounts]
 
         return jsonify({"accounts": account_list}), HTTP_OK
 

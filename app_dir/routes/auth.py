@@ -60,7 +60,7 @@ def create_session():
         if not user:
             return jsonify({"error": "Invalid username or password"}), HTTP_UNAUTHORIZED
 
-        # create access token for the user
+        # create an access token for the user
         access_token = create_access_token(
             identity=user.username, expires_delta=timedelta(days=1)
         )
