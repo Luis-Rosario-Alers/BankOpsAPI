@@ -18,17 +18,16 @@ class JWTToken(db.Model):
     user = db.relationship("User", back_populates="jwt_tokens")
 
     @staticmethod
-    def create_token_log(jti, user_id, expires_delta):
+    def create_token_log(jti, user_id, expires_at):
         """
         Create a new JWT token for a user.
 
         :param user_id: ID of the user
         :param jti: Unique identifier for the token
-        :param expires_delta: Expiration time delta for the token
+        :param expires_at: Expiration time for the token
         :return: New JWT token object
         """
-        expires_delta = datetime.now(timezone.utc) + expires_delta
-        new_token = JWTToken(id=jti, user_id=user_id, expires_at=expires_delta)
+        new_token = JWTToken(id=jti, user_id=user_id, expires_at=expires_at)
         db.session.add(new_token)
         db.session.commit()
         return new_token

@@ -1,3 +1,4 @@
+import datetime
 import os
 
 from dotenv import load_dotenv
@@ -10,13 +11,15 @@ class Config:
 
     DEBUG = False
     TESTING = False
-    SECRET_KEY = os.getenv("SECRET_KEY")
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
     DATABASE_URI = os.getenv("DATABASE_URI")
 
 
 class DevelopmentConfig(Config):
     """Development configuration."""
 
+    JWT_REFRESH_TOKEN_EXPIRES = datetime.timedelta(days=1)
+    JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(minutes=15)
     DEBUG = True
 
 

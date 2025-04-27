@@ -1,8 +1,9 @@
-from datetime import timedelta
+from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import (
     create_access_token,
+    create_refresh_token,
     decode_token,
     get_current_user,
     get_jwt,
@@ -20,6 +21,7 @@ from app_dir.constants.http_status import (
     HTTP_SERVER_ERROR,
     HTTP_UNAUTHORIZED,
 )
+from app_dir.extensions import db
 from app_dir.models.jwttoken import JWTToken
 from app_dir.services.auth_service import AuthService
 
@@ -61,20 +63,25 @@ def create_session():
             return jsonify({"error": "Invalid username or password"}), HTTP_UNAUTHORIZED
 
         # create an access token for the user
-        access_token = create_access_token(
-            identity=user.username, expires_delta=timedelta(days=1)
-        )
+        access_token = create_access_token(identity=user.username)
+
+        refresh_token = create_refresh_token(identity=user.username)
 
         JWTToken.create_token_log(
-            jti=decode_token(access_token)["jti"],
+            jti=decode_token(refresh_token)["jti"],
             user_id=user.user_id,
-            expires_delta=timedelta(days=1),
+            expires_at=datetime.fromtimestamp(
+                decode_token(refresh_token)["exp"], tz=timezone.utc
+            ),
         )
 
         return (
             jsonify(
                 {
                     "access_token": access_token,
+                    "access_token_expires_in": decode_token(access_token)["exp"],
+                    "refresh_token": refresh_token,
+                    "refresh_token_expires_in": decode_token(refresh_token)["exp"],
                     "user": user.username,
                     "roles": user.roles,
                     "message": "Login successful",
@@ -209,4 +216,50 @@ def authenticate_account(account_number):
         )
 
     except Exception as e:
+        return jsonify({"error": str(e)}), HTTP_SERVER_ERROR
+
+
+@auth_bp.route("/sessions/renew", methods=["POST"])
+@jwt_required(refresh=True, verify_type=True)
+def renew_session():
+    """Attempts to renew the current session."""
+    try:
+        refresh_token = get_jwt()["jti"]
+        user = get_current_user()
+
+        refresh_token_object = JWTToken.query.filter_by(
+            id=refresh_token, user_id=user.user_id, is_blacklisted=False
+        ).first()
+
+        if refresh_token_object is None:
+            return jsonify({"error": "Invalid refresh token"}), HTTP_UNAUTHORIZED
+
+        db.session.delete(refresh_token_object)
+
+        new_refresh_token = create_refresh_token(identity=user.username)
+        new_access_token = create_access_token(identity=user.username)
+
+        JWTToken.create_token_log(
+            jti=decode_token(new_refresh_token)["jti"],
+            user_id=user.user_id,
+            expires_at=datetime.fromtimestamp(
+                decode_token(new_refresh_token)["exp"], tz=timezone.utc
+            ),
+        )
+
+        db.session.commit()
+
+        return (
+            jsonify(
+                {
+                    "access_token": new_access_token,
+                    "access_token_expires_in": decode_token(new_access_token)["exp"],
+                    "refresh_token": new_refresh_token,
+                    "refresh_token_expires_in": decode_token(new_refresh_token)["exp"],
+                }
+            ),
+            HTTP_OK,
+        )
+    except Exception as e:
+        db.session.rollback()
         return jsonify({"error": str(e)}), HTTP_SERVER_ERROR
